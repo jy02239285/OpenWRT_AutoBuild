@@ -17,7 +17,7 @@ env:
   TZ: Asia/Shanghai
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,11 +33,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang flex g++ gawk gcc-multilib \
           gettext git libncurses5-dev libssl-dev libxml-parser-perl make perl \
-          python3 python3-distutils python3-pip rsync unzip zlib1g-dev file wget curl \
+          python3 python3-pip rsync unzip zlib1g-dev file wget curl \
           time ccache cmake lzma flex bison xxd swig libelf-dev
           sudo timedatectl set-timezone "$TZ"
-          mkdir -p /workdir
-          sudo chown -R $USER:$GROUPS /workdir
+          # 创建 workdir 并设置正确权限
+          sudo mkdir -p /workdir
+          sudo chown -R $USER:$(id -gn) /workdir
           
       - name: Clone OpenWrt source
         run: |
@@ -100,11 +101,10 @@ jobs:
           cd /workdir/openwrt
           make defconfig
           
-          # 获取核心数，GitHub Actions 通常提供 2-8 个核心
+          # 获取核心数
           CORES=$(nproc)
           echo "使用核心数: $CORES"
           
-          # 对于工具链编译使用较多核心
           echo "=== 编译工具链 ==="
           make -j$CORES tools/compile || make -j$(($CORES/2)) tools/compile V=s
           make -j$CORES tools/install || make -j$(($CORES/2)) tools/install V=s
@@ -120,7 +120,6 @@ jobs:
           make -j$(($CORES * 3 / 4)) package/compile || make -j$(($CORES/2)) package/compile V=s
           
           echo "=== 安装包 ==="
-          # 安装阶段使用较少核心以避免依赖问题
           make -j$(($CORES/2)) package/install || make -j2 V=s package/install
           
           echo "=== 创建镜像 ==="
@@ -135,31 +134,36 @@ jobs:
         if: failure()
         run: |
           echo "=== Current directory structure ==="
-          ls -la /workdir/
-          echo "=== Checking if openwrt directory exists ==="
-          if [ -d "/workdir/openwrt" ]; then
-            cd /workdir/openwrt
-            echo "=== Last 50 lines of build log ==="
-            tail -n 50 logs/build.log 2>/dev/null || echo "No build.log found"
-            
-            echo "=== Package install error details ==="
-            find . -name "*package*install*.log" -exec echo "=== {} ===" \; -exec tail -n 30 {} \; 2>/dev/null || echo "No package install logs found"
-            
-            echo "=== Config file content ==="
-            head -30 .config 2>/dev/null || echo "No .config found"
-            
-            echo "=== Disk space ==="
-            df -h
-            du -sh . 2>/dev/null || true
-            
-            echo "=== Recent error logs ==="
-            find . -name "*.log" -exec echo "=== {} ===" \; -exec tail -n 10 {} \; 2>/dev/null | head -100 || echo "No logs found"
-          else
-            echo "ERROR: /workdir/openwrt directory does not exist!"
-            echo "=== Workdir contents ==="
+          ls -la / || true
+          echo "=== Checking workdir ==="
+          if [ -d "/workdir" ]; then
             ls -la /workdir/
-            echo "=== Workspace contents ==="
-            ls -la $GITHUB_WORKSPACE/
+            if [ -d "/workdir/openwrt" ]; then
+              cd /workdir/openwrt
+              echo "=== Last 50 lines of build log ==="
+              tail -n 50 logs/build.log 2>/dev/null || echo "No build.log found"
+              
+              echo "=== Package install error details ==="
+              find . -name "*package*install*.log" -exec echo "=== {} ===" \; -exec tail -n 30 {} \; 2>/dev/null || echo "No package install logs found"
+              
+              echo "=== Config file content ==="
+              head -30 .config 2>/dev/null || echo "No .config found"
+              
+              echo "=== Disk space ==="
+              df -h
+              du -sh . 2>/dev/null || true
+              
+              echo "=== Recent error logs ==="
+              find . -name "*.log" -exec echo "=== {} ===" \; -exec tail -n 10 {} \; 2>/dev/null | head -100 || echo "No logs found"
+            else
+              echo "ERROR: /workdir/openwrt directory does not exist!"
+            fi
+          else
+            echo "ERROR: /workdir directory does not exist!"
+            echo "=== Creating workdir and retrying ==="
+            sudo mkdir -p /workdir
+            sudo chown -R $USER:$(id -gn) /workdir
+            ls -la /workdir/ || true
           fi
           
       - name: Organize firmware
