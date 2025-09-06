@@ -39,7 +39,6 @@ jobs:
         sudo apt-get autoremove -y
         sudo apt-get autoclean
         df -h
-
     - name: 安装编译环境
       run: |
         sudo apt-get update
@@ -48,14 +47,12 @@ jobs:
         libncursesw5-dev libssl-dev python3 python3-setuptools python3-pip \
         python3-dev unzip wget rsync subversion swig time \
         xsltproc zlib1g-dev clang
-
     - name: 下载OpenWrt源码
       run: |
         echo "下载OpenWrt 24.10版本..."
         git clone $REPO_URL -b $REPO_BRANCH --depth=1
         cd openwrt
         echo "源码下载完成"
-
     - name: 执行自定义脚本第一部分
       run: |
         cd openwrt
@@ -68,14 +65,12 @@ jobs:
           echo "当前目录: $(pwd)"
           echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
         fi
-
     - name: 更新feeds
       run: |
         cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         echo "官方feeds安装完成"
-
     - name: 生成设备配置
       run: |
        cd openwrt
@@ -109,7 +104,6 @@ jobs:
           echo "当前目录: $(pwd)"
           echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
         fi
-
     - name: 下载源码包
       run: |
         cd openwrt
@@ -117,7 +111,6 @@ jobs:
         make download -j4
         find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
         echo "依赖包下载完成"
-
     - name: 编译固件
       run: |
         cd openwrt
@@ -149,7 +142,6 @@ jobs:
           find bin/targets -type d 2>/dev/null || echo "未找到targets目录"
           exit 1
         fi
-
     - name: 整理固件文件
       if: env.COMPILE_SUCCESS == 'true'
       run: |
@@ -164,7 +156,6 @@ jobs:
         
         echo "最终固件文件："
         ls -lh *.bin 2>/dev/null || echo "未找到bin文件"
-
     - name: 获取当前日期
       id: build_date
       run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
@@ -174,7 +165,6 @@ jobs:
       run: |
         OS_INFO=$(cat /etc/os-release | grep PRETTY_NAME | cut -d '"' -f2)
         echo "os_info=${OS_INFO}" >> $GITHUB_OUTPUT
-
     - name: 创建Release
       if: env.COMPILE_SUCCESS == 'true'
       uses: softprops/action-gh-release@v2
