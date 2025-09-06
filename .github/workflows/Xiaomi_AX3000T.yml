@@ -37,7 +37,6 @@ jobs:
           python3 python3-pip rsync unzip zlib1g-dev file wget curl \
           time ccache cmake lzma flex bison xxd swig libelf-dev
           sudo timedatectl set-timezone "$TZ"
-          # 创建 workdir 并设置正确权限
           sudo mkdir -p /workdir
           sudo chown -R $USER:$(id -gn) /workdir
           
@@ -60,7 +59,6 @@ jobs:
             head -10 .config
           else
             echo "未找到外部配置文件，使用默认配置"
-            # 使用简单的配置，避免EOF问题
             echo "CONFIG_TARGET_mediatek=y" > .config
             echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
             echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
@@ -87,7 +85,15 @@ jobs:
           cd /workdir/openwrt
           ./scripts/feeds uninstall -a
           ./scripts/feeds install -a
-          make package/index
+          
+      - name: 重新同步配置
+        run: |
+          cd /workdir/openwrt
+          echo "=== 重新同步配置 ==="
+          make defconfig
+          echo "配置同步完成"
+          echo "当前配置状态:"
+          make -s oldconfig 2>/dev/null || true
           
       - name: Check config and dependencies
         run: |
@@ -104,29 +110,32 @@ jobs:
         run: |
           cd /workdir/openwrt
           
+          # 再次确保配置同步
+          make defconfig
+          
           # 获取核心数
           CORES=$(nproc)
           echo "使用核心数: $CORES"
           
           echo "=== 编译工具链 ==="
-          make -j$CORES tools/compile || make -j$(($CORES/2)) tools/compile V=s
-          make -j$CORES tools/install || make -j$(($CORES/2)) tools/install V=s
+          make -j$CORES tools/compile || make -j1 V=s tools/compile
+          make -j$CORES tools/install || make -j1 V=s tools/install
           
           echo "=== 编译工具链 ==="
-          make -j$CORES toolchain/compile || make -j$(($CORES/2)) toolchain/compile V=s
-          make -j$CORES toolchain/install || make -j$(($CORES/2)) toolchain/install V=s
+          make -j$CORES toolchain/compile || make -j1 V=s toolchain/compile
+          make -j$CORES toolchain/install || make -j1 V=s toolchain/install
           
           echo "=== 编译内核 ==="
-          make -j$CORES target/compile || make -j$(($CORES/2)) target/compile V=s
+          make -j$CORES target/compile || make -j1 V=s target/compile
           
           echo "=== 编译包 ==="
-          make -j$(($CORES * 3 / 4)) package/compile || make -j$(($CORES/2)) package/compile V=s
+          make -j$(($CORES * 3 / 4)) package/compile || make -j1 V=s package/compile
           
           echo "=== 安装包 ==="
-          make -j$(($CORES/2)) package/install || make -j2 V=s package/install
+          make -j$(($CORES/2)) package/install || make -j1 V=s package/install
           
           echo "=== 创建镜像 ==="
-          make -j$CORES || make -j$(($CORES/2)) V=s
+          make -j$CORES || make -j1 V=s
           
           echo "status=success" >> $GITHUB_OUTPUT
           grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
@@ -145,8 +154,12 @@ jobs:
             echo "配置文件不存在!"
           fi
           
-          echo "=== Current directory structure ==="
-          ls -la /workdir/openwrt/ || true
+          echo "=== 检查配置同步状态 ==="
+          cd /workdir/openwrt
+          make -s oldconfig 2>&1 | head -20 || true
+          
+          echo "=== 详细错误信息 ==="
+          make -j1 V=s package/index 2>&1 | tail -50 || true
           
       - name: Organize firmware
         id: organize
