@@ -50,39 +50,25 @@ jobs:
           git clone $REPO_URL -b $REPO_BRANCH openwrt --depth=1
           ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
           
-      - name: 生成设备配置
-        run: |
-          cd /workdir/openwrt
-          echo "配置小米AX3000T..."
-          
-          # 使用正确的配置文件路径
-          if [ -f "$GITHUB_WORKSPACE/config/$CONFIG_FILE" ]; then
-            echo "使用外部配置文件: $GITHUB_WORKSPACE/config/$CONFIG_FILE"
-            cp "$GITHUB_WORKSPACE/config/$CONFIG_FILE" .config
-            echo "配置文件内容预览:"
-            head -10 .config
-          else
-            echo "未找到外部配置文件，使用默认配置"
-            echo "CONFIG_TARGET_mediatek=y" > .config
-            echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-            echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
-          fi
-          
-          echo "配置文件生成完成"
-          make defconfig
-          echo "最终配置文件摘要:"
-          grep "^CONFIG_TARGET" .config || true
-          grep "^CONFIG_PACKAGE" .config | head -5 || true
-          
-      - name: Update feeds
-        run: |
-          cd /workdir/openwrt
-          ./scripts/feeds update -a
+    - name: 执行自定义脚本第一部分
+      run: |
+        cd openwrt
+        if [ -f "$DIY_P1_SH" ]; then
+          echo "执行自定义脚本: $DIY_P1_SH"
+          chmod +x "$DIY_P1_SH"
+          "$DIY_P1_SH"
+        else
+          echo "未找到自定义脚本: $DIY_P1_SH"
+          echo "当前目录: $(pwd)"
+          echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
+        fi
 
-      - name: Install feeds
-        run: |
-          cd /workdir/openwrt
-          ./scripts/feeds install -a
+    - name: 更新feeds
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        echo "官方feeds安装完成"
         
       - name: Check dependencies
         run: |
@@ -90,14 +76,39 @@ jobs:
           ./scripts/feeds uninstall -a
           ./scripts/feeds install -a
           
-      - name: 重新同步配置
-        run: |
-          cd /workdir/openwrt
-          echo "=== 重新同步配置 ==="
-          make defconfig
-          echo "配置同步完成"
-          echo "当前配置状态:"
-          make -s oldconfig 2>/dev/null || true
+    - name: 生成设备配置
+      run: |
+       cd openwrt
+       echo "配置小米AX3000T..."
+    
+       if [ -f "$CONFIG_FILE" ]; then
+       echo "使用外部配置文件: $CONFIG_FILE"
+       # 复制并清理注释
+       grep -v '^#' "$CONFIG_FILE" | grep -v '^$' > .config
+       echo "清理后的配置文件内容预览:"
+       head -10 .config
+       else
+       echo "未找到外部配置文件，使用默认配置"
+       echo "CONFIG_TARGET_mediatek=y" > .config
+       echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+       echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
+       fi
+    
+       echo "配置文件生成完成"
+       make defconfig
+
+    - name: 执行自定义脚本第二部分
+      run: |
+        cd openwrt
+        if [ -f "$DIY_P2_SH" ]; then
+          echo "执行自定义脚本: $DIY_P2_SH"
+          chmod +x "$DIY_P2_SH"
+          "$DIY_P2_SH"
+        else
+          echo "未找到自定义脚本: $DIY_P2_SH"
+          echo "当前目录: $(pwd)"
+          echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
+        fi
           
       - name: Check config and dependencies
         run: |
