@@ -42,11 +42,11 @@ jobs:
     - name: 安装编译环境
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ccache ecj fastjar file g++ gawk \
-        gettext git java-propose-classpath libelf-dev libncurses5-dev \
-        libncursesw5-dev libssl-dev python3 python3-setuptools python3-pip \
-        python3-dev unzip wget rsync subversion swig time \
-        xsltproc zlib1g-dev clang
+        sudo apt-get install -y build-essential ccache clang ecj fastjar file g++ gawk \
+        gettext git java-propose-classpath libelf-dev libncurses5-dev libncursesw5-dev \
+        libssl-dev libxml-parser-perl python3 python3-setuptools python3-pip python3-dev \
+        unzip wget rsync subversion swig time xsltproc zlib1g-dev \
+        software-properties-common lzma flex bison cmake xxd
     - name: 下载OpenWrt源码
       run: |
         echo "下载OpenWrt 24.10版本..."
