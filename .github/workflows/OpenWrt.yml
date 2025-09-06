@@ -75,7 +75,7 @@ jobs:
     - name: 生成设备配置
       run: |
         cd openwrt
-        echo "配置小米AX3000T...
+        echo "配置小米AX3000T..."
           if [ -f "$GITHUB_WORKSPACE/config/$CONFIG_FILE" ]; then
             echo "使用外部配置文件: $GITHUB_WORKSPACE/config/$CONFIG_FILE"
             cp "$GITHUB_WORKSPACE/config/$CONFIG_FILE" .config
