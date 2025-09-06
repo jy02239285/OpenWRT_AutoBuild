@@ -76,29 +76,26 @@ jobs:
         ./scripts/feeds install -a
         echo "官方feeds安装完成"
 
-- name: 生成设备配置
-  run: |
-    cd openwrt
-    echo "配置小米AX3000T..."
+    - name: 生成设备配置
+      run: |
+       cd openwrt
+       echo "配置小米AX3000T..."
     
-    if [ -f "$CONFIG_FILE" ]; then
-      echo "使用外部配置文件: $CONFIG_FILE"
-      # 复制并清理注释
-      grep -v '^#' "$CONFIG_FILE" | grep -v '^$' > .config
-      echo "清理后的配置文件内容预览:"
-      head -10 .config
-    else
-      echo "未找到外部配置文件，使用默认配置"
-      echo "CONFIG_TARGET_mediatek=y" > .config
-      echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-      echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
-    fi
+       if [ -f "$CONFIG_FILE" ]; then
+       echo "使用外部配置文件: $CONFIG_FILE"
+       # 复制并清理注释
+       grep -v '^#' "$CONFIG_FILE" | grep -v '^$' > .config
+       echo "清理后的配置文件内容预览:"
+       head -10 .config
+       else
+       echo "未找到外部配置文件，使用默认配置"
+       echo "CONFIG_TARGET_mediatek=y" > .config
+       echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+       echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
+       fi
     
-    echo "配置文件生成完成"
-    make defconfig
-        
-        echo "配置文件生成完成"
-        make defconfig
+       echo "配置文件生成完成"
+       make defconfig
 
     - name: 执行自定义脚本第二部分
       run: |
