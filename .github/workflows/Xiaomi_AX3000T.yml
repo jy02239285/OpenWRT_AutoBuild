@@ -1,7 +1,13 @@
 name: Build OpenWrt 24.10 for Xiaomi AX3000T
 on:
-  workflow_dispatch: null
-  repository_dispatch: null
+  workflow_dispatch: 
+  repository_dispatch:
+  push: # 当有代码推送时触发
+    paths:
+      - '.github/workflows/**' # 当workflows目录下的文件有变化时
+      - 'config/**' # 当config目录下的文件有变化时
+      - 'scripts/**' # 当scripts目录下的文件有变化时
+    branches: [ main, master ] # 只在主分支触发
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-24.10
