@@ -8,14 +8,18 @@ on:
       - 'config/**'
       - 'scripts/**'
     branches: [ main, master ]
+    
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-24.10
-  CONFIG_FILE: Xiaomi-ax3000t.config
+  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/Xiaomi-ax3000t.config   # 修复路径配置
+  DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
+  DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  
 jobs:
   build:
     runs-on: ubuntu-latest
