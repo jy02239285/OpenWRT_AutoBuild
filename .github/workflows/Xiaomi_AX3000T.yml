@@ -47,24 +47,30 @@ jobs:
           git clone $REPO_URL -b $REPO_BRANCH openwrt --depth=1
           ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
           
-      - name:  生成设备配置
+      - name: 生成设备配置
         run: |
-              cd openwrt
-               echo "配置小米AX3000T..."
-        
-               if [ -f "../$CONFIG_FILE" ]; then
-               echo "使用外部配置文件: ../$CONFIG_FILE"
-               cp "../$CONFIG_FILE" .config
-               else
-               echo "未找到外部配置文件，使用默认配置"
-               # 使用简单的配置，避免EOF问题
-               echo "CONFIG_TARGET_mediatek=y" > .config
-               echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-               echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
-               fi
-        
-               echo "配置文件生成完成"
-               make defconfig
+          cd /workdir/openwrt
+          echo "配置小米AX3000T..."
+          
+          # 使用正确的配置文件路径
+          if [ -f "$GITHUB_WORKSPACE/config/$CONFIG_FILE" ]; then
+            echo "使用外部配置文件: $GITHUB_WORKSPACE/config/$CONFIG_FILE"
+            cp "$GITHUB_WORKSPACE/config/$CONFIG_FILE" .config
+            echo "配置文件内容预览:"
+            head -10 .config
+          else
+            echo "未找到外部配置文件，使用默认配置"
+            # 使用简单的配置，避免EOF问题
+            echo "CONFIG_TARGET_mediatek=y" > .config
+            echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+            echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
+          fi
+          
+          echo "配置文件生成完成"
+          make defconfig
+          echo "最终配置文件摘要:"
+          grep "^CONFIG_TARGET" .config || true
+          grep "^CONFIG_PACKAGE" .config | head -5 || true
           
       - name: Update feeds
         run: |
@@ -86,21 +92,17 @@ jobs:
       - name: Check config and dependencies
         run: |
           cd /workdir/openwrt
-          make defconfig
-          echo "=== 系统信息 ==="
-          echo "CPU 核心数: $(nproc)"
-          echo "内存: $(free -h | awk '/^Mem:/{print $2}')"
-          echo "=== Config file content ==="
-          head -20 .config
-          echo "=== Config summary ==="
-          make printenv V=sc | head -50
+          echo "=== 最终配置文件验证 ==="
+          echo "目标设备:"
+          grep "CONFIG_TARGET.*DEVICE.*=y" .config || echo "未找到设备配置"
+          echo "=== 包配置摘要 ==="
+          grep "^CONFIG_PACKAGE" .config | head -10
           make package/check V=s || true
           
       - name: Compile firmware
         id: compile
         run: |
           cd /workdir/openwrt
-          make defconfig
           
           # 获取核心数
           CORES=$(nproc)
@@ -134,38 +136,17 @@ jobs:
       - name: Debug on failure
         if: failure()
         run: |
-          echo "=== Current directory structure ==="
-          ls -la / || true
-          echo "=== Checking workdir ==="
-          if [ -d "/workdir" ]; then
-            ls -la /workdir/
-            if [ -d "/workdir/openwrt" ]; then
-              cd /workdir/openwrt
-              echo "=== Last 50 lines of build log ==="
-              tail -n 50 logs/build.log 2>/dev/null || echo "No build.log found"
-              
-              echo "=== Package install error details ==="
-              find . -name "*package*install*.log" -exec echo "=== {} ===" \; -exec tail -n 30 {} \; 2>/dev/null || echo "No package install logs found"
-              
-              echo "=== Config file content ==="
-              head -30 .config 2>/dev/null || echo "No .config found"
-              
-              echo "=== Disk space ==="
-              df -h
-              du -sh . 2>/dev/null || true
-              
-              echo "=== Recent error logs ==="
-              find . -name "*.log" -exec echo "=== {} ===" \; -exec tail -n 10 {} \; 2>/dev/null | head -100 || echo "No logs found"
-            else
-              echo "ERROR: /workdir/openwrt directory does not exist!"
-            fi
+          echo "=== 配置文件检查 ==="
+          if [ -f "/workdir/openwrt/.config" ]; then
+            echo "配置文件存在，内容摘要:"
+            grep "^CONFIG_TARGET" /workdir/openwrt/.config || true
+            grep "^CONFIG_PACKAGE" /workdir/openwrt/.config | head -5 || true
           else
-            echo "ERROR: /workdir directory does not exist!"
-            echo "=== Creating workdir and retrying ==="
-            sudo mkdir -p /workdir
-            sudo chown -R $USER:$(id -gn) /workdir
-            ls -la /workdir/ || true
+            echo "配置文件不存在!"
           fi
+          
+          echo "=== Current directory structure ==="
+          ls -la /workdir/openwrt/ || true
           
       - name: Organize firmware
         id: organize
