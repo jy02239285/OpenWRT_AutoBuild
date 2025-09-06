@@ -13,9 +13,9 @@ on:
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-24.10
-  CONFIG_FILE: ${{ github.workspace }}/config/Xiaomi-ax3000t.config
-  DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
+  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/Xiaomi-ax3000t.config   # 修复路径配置
+  DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
+  DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
@@ -31,7 +31,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-       path: main-repo  # 明确指定检出路径
+        path: main-repo
 
     - name: 清理环境
       run: |
@@ -65,9 +65,11 @@ jobs:
           "$DIY_P1_SH"
         else
           echo "未找到自定义脚本: $DIY_P1_SH"
+          echo "当前目录: $(pwd)"
+          echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
         fi
 
-    - name: 更新feeds - 只使用官方源
+    - name: 更新feeds
       run: |
         cd openwrt
         ./scripts/feeds update -a
@@ -78,17 +80,17 @@ jobs:
       run: |
         cd openwrt
         echo "配置小米AX3000T..."
-          if [ -f "$CONFIG_FILE" ]; then
-            echo "使用外部配置文件: $CONFIG_FILE"
-            cp "$CONFIG_FILE" .config
-            echo "配置文件内容预览:"
-            head -10 .config
+        if [ -f "$CONFIG_FILE" ]; then
+          echo "使用外部配置文件: $CONFIG_FILE"
+          cp "$CONFIG_FILE" .config
+          echo "配置文件内容预览:"
+          head -10 .config
         else
           echo "未找到外部配置文件，使用默认配置"
-          # 使用简单的配置，避免EOF问题
           echo "CONFIG_TARGET_mediatek=y" > .config
           echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
           echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
+          echo "查找配置文件: $(find ${{ github.workspace }} -name "*.config" 2>/dev/null || true)"
         fi
         
         echo "配置文件生成完成"
@@ -103,6 +105,8 @@ jobs:
           "$DIY_P2_SH"
         else
           echo "未找到自定义脚本: $DIY_P2_SH"
+          echo "当前目录: $(pwd)"
+          echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
         fi
 
     - name: 下载源码包
