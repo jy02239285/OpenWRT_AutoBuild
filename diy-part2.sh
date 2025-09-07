@@ -1,7 +1,7 @@
 #!/bin/bash
 # https://github.com/
 # File name: diy-part1.sh
-# Description: OpenWrt DIY script part 1 (After Update feeds)
+# Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
 # Modify default theme
