@@ -12,9 +12,9 @@ on:
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-24.10
-  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/Xiaomi-ax3000t.config   # 修复路径配置
-  DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
-  DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
+  CONFIG_FILE: config/Xiaomi-ax3000t.config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: main-repo
         
       - name: Initialization environment
         env:
@@ -49,26 +51,25 @@ jobs:
           cd /workdir
           git clone $REPO_URL -b $REPO_BRANCH openwrt --depth=1
           ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-
+          
       - name: 执行自定义脚本第一部分
         run: |
-         cd openwrt
-         if [ -f "$DIY_P1_SH" ]; then
-          echo "执行自定义脚本: $DIY_P1_SH"
-          chmod +x "$DIY_P1_SH"
-          "$DIY_P1_SH"
-         else
-          echo "未找到自定义脚本: $DIY_P1_SH"
-          echo "当前目录: $(pwd)"
-          echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
-         fi
-
+          cd /workdir/openwrt
+          SCRIPT_PATH="${GITHUB_WORKSPACE}/main-repo/${DIY_P1_SH}"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "执行自定义脚本: $SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            bash "$SCRIPT_PATH"
+          else
+            echo "自定义脚本不存在，跳过: $SCRIPT_PATH"
+          fi
+          
       - name: 更新feed      
         run: |
-         cd openwrt
-         ./scripts/feeds update -a
-         ./scripts/feeds install -a
-         echo "官方feeds安装完成"
+          cd /workdir/openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          echo "官方feeds安装完成"
         
       - name: Check dependencies
         run: |
@@ -78,36 +79,43 @@ jobs:
        
       - name: 生成设备配置
         run: |
-         cd openwrt
-         echo "配置小米AX3000T..."
-    
-         if [ -f "$CONFIG_FILE" ]; then
-         echo "使用外部配置文件: $CONFIG_FILE"
-         # 复制并清理注释
-         grep -v '^#' "$CONFIG_FILE" | grep -v '^$' > .config
-         echo "清理后的配置文件内容预览:"
-         head -10 .config
-         else
-         echo "未找到外部配置文件，使用默认配置"
-         echo "CONFIG_TARGET_mediatek=y" > .config
-         echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-         echo "CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y" >> .config
-         fi
-      
-         echo "配置文件生成完成"
-         make defconfig
+          cd /workdir/openwrt
+          echo "配置小米AX3000T..."
+          
+          CONFIG_PATH="${GITHUB_WORKSPACE}/main-repo/${CONFIG_FILE}"
+          if [ -f "$CONFIG_PATH" ]; then
+            echo "使用外部配置文件: $CONFIG_PATH"
+            # 复制并清理注释
+            grep -v '^#' "$CONFIG_PATH" | grep -v '^$' > .config
+            echo "清理后的配置文件内容预览:"
+            head -10 .config
+          else
+            echo "外部配置文件不存在，使用默认配置"
+            cat > .config << EOF
+            CONFIG_TARGET_mediatek=y
+            CONFIG_TARGET_mediatek_filogic=y
+            CONFIG_TARGET_mediatek_filogic_DEVICE_xiaomi_mi-router-ax3000t=y
+            # 添加基础包配置
+            CONFIG_PACKAGE_luci=y
+            CONFIG_PACKAGE_luci-ssl=y
+            CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+            CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y
+            EOF
+          fi
+          
+          echo "配置文件生成完成"
+          make defconfig
 
       - name: 执行自定义脚本第二部分
         run: |
-          cd openwrt
-          if [ -f "$DIY_P2_SH" ]; then
-          echo "执行自定义脚本: $DIY_P2_SH"
-          chmod +x "$DIY_P2_SH"
-          "$DIY_P2_SH"
+          cd /workdir/openwrt
+          SCRIPT_PATH="${GITHUB_WORKSPACE}/main-repo/${DIY_P2_SH}"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "执行自定义脚本: $SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            bash "$SCRIPT_PATH"
           else
-            echo "未找到自定义脚本: $DIY_P2_SH"
-            echo "当前目录: $(pwd)"
-            echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
+            echo "自定义脚本不存在，跳过: $SCRIPT_PATH"
           fi
           
       - name: Check config and dependencies
@@ -198,6 +206,8 @@ jobs:
         run: |
           echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
           touch release.txt
+          echo "OpenWrt 24.10 for Xiaomi AX3000T" > release.txt
+          echo "编译时间: $(date +"%Y-%m-%d %H:%M:%S")" >> release.txt
           echo "status=success" >> $GITHUB_OUTPUT
           
       - name: Upload firmware to GitHub release
