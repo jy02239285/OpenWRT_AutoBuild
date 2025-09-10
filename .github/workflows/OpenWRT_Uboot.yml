@@ -148,23 +148,36 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    # 新增：复制自定义 DTS 文件
-    - name: Copy custom DTS file
-      run: |
-        mkdir -p target/linux/mediatek/dts/
-        cp -f ./mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dts openwrt/target/linux/mediatek/dts/
-        echo "自定义 DTS 文件已复制"
-
-    # 新增：更新 DTS Makefile
-    - name: Update DTS Makefile
+    # 修正：确保自定义 DTS 在 Makefile 中被启用
+    - name: Enable custom DTS in Makefile
       run: |
         cd target/linux/mediatek/dts/
-        if ! grep -q "mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" Makefile; then
-          echo "dtb-\$(CONFIG_TARGET_mediatek_filogic) += mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" >> Makefile
-          echo "已添加 DTS 到 Makefile"
+        
+        # 首先检查DTS文件是否存在
+        if [ -f "mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dts" ]; then
+          echo "✅ 自定义 DTS 文件已存在"
+          ls -la mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dts
         else
-          echo "DTS 已在 Makefile 中存在"
+          echo "❌ 自定义 DTS 文件未找到"
+          echo "当前目录内容:"
+          ls -la
+          echo "查找所有dts文件:"
+          find . -name "*.dts" | head -10
+          exit 1
         fi
+        
+        # 检查并更新Makefile
+        if ! grep -q "mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" Makefile; then
+          echo "添加自定义 DTS 到 Makefile..."
+          echo "dtb-\$(CONFIG_TARGET_mediatek_filogic) += mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" >> Makefile
+          echo "✅ 已添加 DTS 到 Makefile"
+        else
+          echo "✅ DTS 已在 Makefile 中存在"
+        fi
+        
+        # 验证添加结果
+        echo "当前 Makefile 内容："
+        grep "mt7981b-xiaomi-mi-router-ax3000t" Makefile || echo "未找到相关条目"
 
     - name: Download package  # 下载包
       id: package
