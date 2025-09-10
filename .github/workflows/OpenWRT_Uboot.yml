@@ -29,9 +29,6 @@ jobs:
     steps:
     - name: Check Server Performance  # 检查服务器性能
       run: |
-        echo "警告⚠"
-        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-        echo -e "已知CPU型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
         echo "--------------------------CPU信息--------------------------"
         echo "CPU物理数量: $(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
         echo "CPU核心数量: $(nproc)"
@@ -40,7 +37,7 @@ jobs:
         echo "已安装内存详细信息:"
         echo -e "$(sudo lshw -short -C memory | grep GiB)\n"
         echo "--------------------------硬盘信息--------------------------"
-        echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
+        echo "硬盘容量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
     - name: Checkout  # 检出代码
       uses: actions/checkout@main
 
@@ -154,14 +151,14 @@ jobs:
     # 新增：复制自定义 DTS 文件
     - name: Copy custom DTS file
       run: |
-        mkdir -p openwrt/target/linux/mediatek/dts/
+        mkdir -p target/linux/mediatek/dts/
         cp -f ./mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dts openwrt/target/linux/mediatek/dts/
         echo "自定义 DTS 文件已复制"
 
     # 新增：更新 DTS Makefile
     - name: Update DTS Makefile
       run: |
-        cd openwrt/target/linux/mediatek/dts/
+        cd target/linux/mediatek/dts/
         if ! grep -q "mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" Makefile; then
           echo "dtb-\$(CONFIG_TARGET_mediatek_filogic) += mt7981b-xiaomi-mi-router-ax3000t-ubootmod.dtb" >> Makefile
           echo "已添加 DTS 到 Makefile"
