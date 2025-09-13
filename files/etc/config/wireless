@@ -1,0 +1,33 @@
+# 2.4GHz Radio - Open
+config wifi-device 'radio0'
+        option type 'mac80211'
+        option path 'platform/soc/18000000.wifi'
+        option band '2g'
+        option channel 'auto'
+        option htmode 'HE20'
+        option country 'US'  # 请根据实际情况设置国家代码
+        option disabled '0'  # 确保无线电启用
+
+config wifi-iface 'default_radio0'
+        option device 'radio0'
+        option network 'lan'
+        option mode 'ap'
+        option ssid 'OpenWRT-2.4G'  # 设置你的SSID
+        option encryption 'none'  # 不加密
+
+# 5GHz Radio - Open
+config wifi-device 'radio1'
+        option type 'mac80211'
+        option path 'platform/soc/18000000.wifi+1'
+        option band '5g'
+        option channel 'auto'
+        option htmode 'HE80'
+        option country 'US'  # 请根据实际情况设置国家代码
+        option disabled '0'  # 确保无线电启用
+
+config wifi-iface 'default_radio1'
+        option device 'radio1'
+        option network 'lan'
+        option mode 'ap'
+        option ssid 'OpenWRT'  # 设置你的SSID
+        option encryption 'none'  # 不加密
