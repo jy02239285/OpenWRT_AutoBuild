@@ -55,7 +55,8 @@ jobs:
         echo "下载OpenWrt 24.10版本..."
         git clone $REPO_URL -b $REPO_BRANCH --depth=1
         cd openwrt
-        echo "源码下载完成"
+        echo "源码下载完成 - 版本信息:"
+        git describe --tags
         
     - name: 执行自定义脚本第一部分
       run: |
