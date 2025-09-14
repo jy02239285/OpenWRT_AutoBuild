@@ -1,4 +1,3 @@
----
 name: Build OpenWrt for Xiaomi AX3000T DIY3
 on:
   workflow_dispatch: null
@@ -17,7 +16,7 @@ env:
   CONFIG_FILE: ${{ github.workspace }}/main-repo/config/Xiaomi-ax3000t.config
   DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
   DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
-  Part3_sh: ${{ github.workspace }}/part3.sh
+  Part3_sh:: ${{ github.workspace }}/main-repo/part3.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
@@ -72,7 +71,7 @@ jobs:
             echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
           fi
       - name: 复制自定义文件 (DIY Part 3)
-        run: |+
+        run: |
           cd openwrt
           SCRIPT_PATH="${GITHUB_WORKSPACE}/main-repo/part3.sh"
             if [ -f "$SCRIPT_PATH" ]; then
