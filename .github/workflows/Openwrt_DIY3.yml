@@ -58,7 +58,7 @@ jobs:
           echo "源码下载完成 - 版本信息:"
           git describe --tags
       - name: 执行自定义脚本第一部分
-        run: >
+        run: |
           cd openwrt
 
           if [ -f "$DIY_P1_SH" ]; then
@@ -72,7 +72,7 @@ jobs:
           fi
           
       - name: 执行自定义脚本第三部分
-        run: >
+        run: |
           cd openwrt
           if [ -f "$Part3_sh" ]; then
             echo "执行自定义脚本: $Part3_sh"
@@ -91,7 +91,7 @@ jobs:
           ./scripts/feeds install -a
           echo "官方feeds安装完成"
       - name: 生成设备配置
-        run: >
+        run: |
           cd openwrt
 
           echo "配置小米AX3000T..."
@@ -114,7 +114,7 @@ jobs:
 
           make defconfig
       - name: 执行自定义脚本第二部分
-        run: >
+        run: |
           cd openwrt
 
           if [ -f "$DIY_P2_SH" ]; then
