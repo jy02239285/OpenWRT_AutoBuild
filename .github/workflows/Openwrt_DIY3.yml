@@ -73,7 +73,7 @@ jobs:
           fi
       - name: 复制自定义文件 (DIY Part 3)
         run: |+
-          cd /workdir/openwrt
+          cd openwrt
           SCRIPT_PATH="${GITHUB_WORKSPACE}/main-repo/part3.sh"
             if [ -f "$SCRIPT_PATH" ]; then
               echo "执行专门的文件复制脚本: $SCRIPT_PATH"
