@@ -12,7 +12,7 @@ echo "当前工作目录: $(pwd)"
 
 # 定义源路径和目标路径
 SOURCE_DIR="$GITHUB_WORKSPACE/main-repo/files" # 你仓库中的 files 目录
-TARGET_DIR="/workdir/openwrt" # OpenWrt 源码根目录
+TARGET_DIR="$(pwd)" # OpenWrt 源码根目录
 
 echo "📁 源目录: $SOURCE_DIR"
 echo "🎯 目标目录: $TARGET_DIR"
