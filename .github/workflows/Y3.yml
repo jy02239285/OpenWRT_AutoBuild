@@ -65,19 +65,6 @@ jobs:
             echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
           fi
           
-      - name: 执行自定义脚本第三部分
-        run: |
-          cd openwrt
-          if [ -f "$Part3_sh" ]; then
-            echo "执行自定义脚本: $Part3_sh"
-            chmod +x "$Part3_sh"
-            "$Part3_sh"
-          else
-            echo "未找到自定义脚本: $Part3_sh"
-            echo "当前目录: $(pwd)"
-            echo "查找文件: $(find ${{ github.workspace }} -name "part3.sh" 2>/dev/null || true)"
-          fi
-            
       - name: 更新feeds
         run: |
           cd openwrt
@@ -113,6 +100,18 @@ jobs:
             echo "未找到自定义脚本: $DIY_P2_SH"
             echo "当前目录: $(pwd)"
             echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
+          fi
+      - name: 执行自定义脚本第三部分
+        run: |
+          cd openwrt
+          if [ -f "$Part3_sh" ]; then
+            echo "执行自定义脚本: $Part3_sh"
+            chmod +x "$Part3_sh"
+            "$Part3_sh"
+          else
+            echo "未找到自定义脚本: $Part3_sh"
+            echo "当前目录: $(pwd)"
+            echo "查找文件: $(find ${{ github.workspace }} -name "part3.sh" 2>/dev/null || true)"
           fi
       - name: 下载源码包
         run: |
