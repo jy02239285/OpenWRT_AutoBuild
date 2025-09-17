@@ -88,6 +88,10 @@ jobs:
             echo "查找配置文件: $(find ${{ github.workspace }} -name "*.config" 2>/dev/null || true)"
           fi
           echo "配置文件生成完成"
+          echo "强制启用 strongswan-full"
+          echo "CONFIG_PACKAGE_strongswan-full=y" >> .config
+          make defconfig
+          grep CONFIG_PACKAGE_strongswan-full=y .config || (echo "❌ strongswan-full 没有进入配置"; exit 1)
           make defconfig
       - name: 执行自定义脚本第二部分
         run: |
