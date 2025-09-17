@@ -89,9 +89,9 @@ jobs:
           fi
           echo "配置文件生成完成"
           echo "强制启用 strongswan-full"
-          echo "CONFIG_PACKAGE_strongswan-full=y" >> .config
+          echo "CONFIG_PACKAGE_strongswan=y" >> .config
           make defconfig
-          grep CONFIG_PACKAGE_strongswan-full=y .config || (echo "❌ strongswan-full 没有进入配置"; exit 1)
+          grep CONFIG_PACKAGE_CONFIG_PACKAGE_strongswan=y .config || (echo "❌ strongswan-full 没有进入配置"; exit 1)
           make defconfig
       - name: 执行自定义脚本第二部分
         run: |
