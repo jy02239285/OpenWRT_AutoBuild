@@ -1,4 +1,4 @@
-name: Build OpenWrt for Xiaomi AX3000T DIY3-new
+name: Build OpenWrt for strongswan
 on:
   workflow_dispatch:
   repository_dispatch:
@@ -13,7 +13,7 @@ on:
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: v24.10.2
-  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/Xiaomi-ax3000t.config
+  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/strongswan.config
   DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
   DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
   Part3_sh: ${{ github.workspace }}/main-repo/part3.sh
