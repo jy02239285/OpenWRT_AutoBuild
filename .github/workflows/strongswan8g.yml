@@ -1,4 +1,4 @@
-name: Build OpenWrt for strongswan
+name: Build OpenWrt for strongswan8g
 
 on:
   workflow_dispatch:
@@ -110,12 +110,6 @@ jobs:
             chmod +x "$Part3_sh"
             "$Part3_sh"
           fi
-
-      - name: 编译Python3（单线程）
-        run: |
-          cd openwrt
-          echo "单线程编译 Python3，避免 OOM"
-          make package/feeds/packages/python3/compile -j1 V=s
 
       - name: 下载源码包
         run: |
