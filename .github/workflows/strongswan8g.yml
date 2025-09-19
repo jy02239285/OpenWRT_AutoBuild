@@ -41,15 +41,20 @@ jobs:
           sudo apt-get autoremove -y
           sudo apt-get autoclean
           df -h
-
-      - name: 增加swap空间
+      - name: 清理之前的构建 (distclean)
         run: |
-          echo "增加8GB swap空间..."
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+          cd openwrt
+          make distclean
+          echo "Distclean 完成"
+
+#      - name: 增加swap空间
+#        run: |
+#          echo "增加8GB swap空间..."
+#          sudo fallocate -l 8G /swapfile
+#          sudo chmod 600 /swapfile
+#          sudo mkswap /swapfile
+#          sudo swapon /swapfile
+#          free -h
 
       - name: 安装编译环境
         run: |
