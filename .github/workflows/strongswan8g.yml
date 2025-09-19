@@ -42,19 +42,20 @@ jobs:
           sudo apt-get autoclean
           df -h
       - name: 清理之前的构建 (distclean)
-      run: |
-        # 尝试不同的可能路径
-        if [ -d "openwrt" ]; then
+        run: |
+          # 尝试不同的可能路径
+          if [ -d "openwrt" ]; then
           echo "找到openwrt目录，执行distclean"
           cd openwrt
           make distclean
-        elif [ -d "OpenWRT_AutoBuild/openwrt" ]; then
+          elif [ -d "OpenWRT_AutoBuild/openwrt" ]; then
           echo "找到OpenWRT_AutoBuild/openwrt目录，执行distclean"
           cd OpenWRT_AutoBuild/openwrt
           make distclean
-        else
+          else
           echo "未找到openwrt目录，跳过distclean"
-        fi
+          fi
+
 
 #      - name: 增加swap空间
 #        run: |
