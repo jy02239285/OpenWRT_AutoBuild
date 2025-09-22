@@ -1,0 +1,37 @@
+#!/bin/sh
+# ========================================
+# 99-custom-network-wifi
+# 功能：
+#   1. 设置 LAN IP
+#   2. 启用无线并设置 SSID 为开放模式
+# 适用：小米 AX3000T (MT7981)
+# ========================================
+
+echo "🔧 [uci-defaults] 开始自定义网络和无线配置..."
+
+# -------------------------
+# LAN 网络设置
+# -------------------------
+uci set network.lan.ipaddr='10.0.0.1'
+uci set network.lan.netmask='255.255.255.0'
+uci set network.lan.ip6assign='60'
+uci commit network
+echo "✅ [uci-defaults] LAN 网络配置已应用"
+
+# -------------------------
+# 无线设置（开放模式）
+# -------------------------
+# 启用 2.4GHz WiFi 并设置 SSID，开放模式
+uci set wireless.radio0.disabled='0'
+uci set wireless.@wifi-iface[0].ssid='OpenWRT_2.4GHz'
+uci set wireless.@wifi-iface[0].encryption='none'
+
+# 启用 5GHz WiFi 并设置 SSID，开放模式
+uci set wireless.radio1.disabled='0'
+uci set wireless.@wifi-iface[1].ssid='OpenWRT'
+uci set wireless.@wifi-iface[1].encryption='none'
+
+uci commit wireless
+echo "✅ [uci-defaults] 无线配置已应用（开放模式）"
+
+echo "🎉 [uci-defaults] 网络和无线初始化完成！"
