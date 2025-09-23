@@ -1,15 +1,18 @@
 #!/bin/bash
+# ============================================
+# OpenWrt DIY 脚本
+# 第二部分 - 修改默认设置
+# ============================================
 # https://github.com/
-# File name: diy-part2.sh
-# Description: OpenWrt DIY script part 2 (After Update feeds)
+# 文件名: diy-part2.sh
+# 描述: OpenWrt DIY 脚本第 2 部分 (更新 feeds 之后执行)
 #
 
-# Modify default theme
-#sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+# 修改默认 IP
+sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
 
-# Modify hostname
-#sed -i 's/OpenWrt/OpenWrt.Lan/g' package/base-files/files/bin/config_generate
+# 修改主机名
+sed -i 's/hostname='OpenWrt'/hostname='AX3000T'/g' package/base-files/files/bin/config_generate
 
-# Modify default IP 10.0.0.1/24
-#sed -i "/ipaddr/s/.*/\t\tset network.lan.ipaddr='10.0.0.1'/" package/base-files/files/bin/config_generate
-#sed -i "/netmask/s/.*/\t\tset network.lan.netmask='255.255.255.0'/" package/base-files/files/bin/config_generate
+# 修改默认主题 (可选)
+# sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
