@@ -1,0 +1,20 @@
+#!/bin/sh
+# ========================================
+# 99-custom-wifi
+# 功能：第一次启动时配置无线
+# ========================================
+
+echo "🔧 [uci-defaults] 开始应用 WiFi 配置..."
+
+# 启用 2.4GHz WiFi 并设置 SSID，开放模式
+uci set wireless.radio0.disabled='0'
+uci set wireless.@wifi-iface[0].ssid='OpenWRT_2.4GHz'
+uci set wireless.@wifi-iface[0].encryption='none'
+
+# 启用 5GHz WiFi 并设置 SSID，开放模式
+uci set wireless.radio1.disabled='0'
+uci set wireless.@wifi-iface[1].ssid='OpenWRT'
+uci set wireless.@wifi-iface[1].encryption='none'
+
+uci commit wireless
+echo "✅ WiFi 配置已完成（SSID 已修改为开放模式）"
