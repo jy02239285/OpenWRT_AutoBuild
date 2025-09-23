@@ -8,7 +8,7 @@
 #
 
 # 源文件路径 (你自己准备的文件)
-SRC_FILE="files/etc/uci-defaults/99-custom-network-wifi"
+SRC_FILE="${{ github.workspace }}/main-repo/files/etc/uci-defaults/99-custom-network-wifi"
 
 # OpenWrt 源码目标路径
 DEST_DIR="openwrt/files/etc/uci-defaults"
