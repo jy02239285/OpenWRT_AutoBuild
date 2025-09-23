@@ -96,6 +96,8 @@ jobs:
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          ./scripts/feeds install libtls
+          ./scripts/feeds install openssl
 
       - name: 生成设备配置
         run: |
