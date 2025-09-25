@@ -135,9 +135,15 @@ jobs:
           free -h
           echo "========================================="
           
+          - name: 应用内核配置修复
           # 添加内核配置修复 - 解决交互式提示问题
           echo "🔧 应用内核配置修复..."
-          make kernel_olddefconfig
+          run: |
+          cd openwrt
+          # 先同步基础配置
+          make defconfig
+          # 再应用内核配置
+          make -j1 V=s kernel_olddefconfig
           echo "✅ 内核配置修复完成"
           
           make -j${COMPILE_THREADS} V=s
