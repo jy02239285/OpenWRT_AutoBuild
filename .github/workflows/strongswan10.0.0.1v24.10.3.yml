@@ -134,6 +134,12 @@ jobs:
           echo "使用 ${COMPILE_THREADS} 线程编译"
           free -h
           echo "========================================="
+          
+          # 添加内核配置修复 - 解决交互式提示问题
+          echo "🔧 应用内核配置修复..."
+          make kernel_olddefconfig
+          echo "✅ 内核配置修复完成"
+          
           make -j${COMPILE_THREADS} V=s
           echo "========================================="
           echo "编译结束时间: $(date)"
