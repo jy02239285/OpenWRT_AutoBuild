@@ -125,6 +125,7 @@ jobs:
       - name: 编译固件
         run: |
           cd openwrt
+          yes '' | make -j$(nproc) V=s world
           echo "========================================="
           echo "开始编译 OpenWrt 24.10 for 小米AX3000T"
           echo "编译开始时间: $(date)"
@@ -134,16 +135,6 @@ jobs:
           echo "使用 ${COMPILE_THREADS} 线程编译"
           free -h
           echo "========================================="
-      - name: 应用内核配置修复
-        run: |
-          # 添加内核配置修复 - 解决交互式提示问题
-          echo "🔧 应用内核配置修复..."
-          cd openwrt
-          # 先同步基础配置
-          make defconfig
-          # 再应用内核配置
-          make -j1 V=s kernel_olddefconfig
-          echo "✅ 内核配置修复完成"
           
           make -j${COMPILE_THREADS} V=s
           echo "========================================="
