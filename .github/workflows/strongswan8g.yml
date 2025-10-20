@@ -5,7 +5,7 @@ on:
   repository_dispatch:
   push:
     paths:
-      - .github/workflows/**
+      - .github/workflows/strongswan8g.yml
       - config/**
       - scripts/**
     branches:
