@@ -134,6 +134,12 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
           echo "依赖包下载完成"
           
+      - name: 合并配置文件并修复不一致
+        run: |
+          cd openwrt
+          ./scripts/kconfig/merge_config.sh -m .config
+          make olddefconfig
+
       - name: 编译固件
         run: |
           cd openwrt
