@@ -5,7 +5,7 @@ on:
   repository_dispatch: # 允许通过API事件触发
   push: # 当有代码推送时触发
     paths:
-      - '.github/workflows/**' # 当workflows目录下的文件有变化时
+      - '.github/workflows/WRT.yml' # 当workflows目录下的WRT.yml文件有变化时
       - 'config/**' # 当config目录下的文件有变化时
       - 'scripts/**' # 当scripts目录下的文件有变化时
     branches: [ main, master ] # 只在主分支触发
