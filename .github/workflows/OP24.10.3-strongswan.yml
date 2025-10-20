@@ -1,4 +1,4 @@
-name: Build OpenWrt for Xiaomi AX3000T DIY3-strongswan 24.10.3
+name: Build OpenWrt for Xiaomi AX3000T 24.10.3 - strongswan 
 on:
   workflow_dispatch:
   repository_dispatch:
@@ -131,7 +131,8 @@ jobs:
       - name: 编译固件
         run: |
           cd openwrt
-          yes '' | make -j$(nproc) V=s world
+          make olddefconfig
+          make -j$(nproc) V=s world
           echo "========================================="
           echo "开始编译 OpenWrt 24.10 for 小米AX3000T"
           echo "编译开始时间: $(date)"
