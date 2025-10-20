@@ -4,7 +4,7 @@ on:
   repository_dispatch: null
   push:
     paths:
-      - .github/workflows/**
+      - .github/workflows/Xiaomi_AX3000T.yml
       - config/**
       - scripts/**
     branches:
