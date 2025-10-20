@@ -68,7 +68,13 @@ jobs:
             echo "当前目录: $(pwd)"
             echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
           fi
-          
+
+      - name: 添加缺失的 feed 源
+        run: | 
+          cd openwrt
+          echo "src-git routing https://git.openwrt.org/feed/routing.git" >> feeds.conf.default
+          echo "src-git telephony https://git.openwrt.org/feed/telephony.git" >> feeds.conf.default
+             
       - name: 更新feeds
         run: |
           cd openwrt
