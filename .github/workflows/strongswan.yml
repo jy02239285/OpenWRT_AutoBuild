@@ -4,7 +4,7 @@ on:
   repository_dispatch: null
   push:
     paths:
-      - .github/workflows/**
+      - .github/workflows/strongswan.yml
       - config/**
       - scripts/**
     branches:
