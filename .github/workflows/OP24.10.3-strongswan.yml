@@ -134,36 +134,40 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
           echo "依赖包下载完成"
 
-      - name: 编译固件
+      - name: 编译 OpenWRT 固件
         run: |
           cd openwrt
+
+          echo "🛠️ 修复配置文件"
           make defconfig
-          make -j$(nproc) V=s world
-          echo "========================================="
-          echo "开始编译 OpenWrt 24.10 for 小米AX3000T"
-          echo "编译开始时间: $(date)"
-          echo "========================================="
+
+          echo "🚀 开始编译 OpenWRT for 小米 AX3000T"
+          echo "开始时间: $(date)"
           export FORCE_UNSAFE_CONFIGURE=1
           COMPILE_THREADS=4
           echo "使用 ${COMPILE_THREADS} 线程编译"
           free -h
-          echo "========================================="
-          
-          make -j${COMPILE_THREADS} V=s
-          echo "========================================="
-          echo "编译结束时间: $(date)"
-          echo "========================================="
-          if [ -d "bin/targets/mediatek/filogic" ]; then
-            echo "✅ 编译成功！"
-            ls -la bin/targets/mediatek/filogic/
-            echo "COMPILE_SUCCESS=true" >> $GITHUB_ENV
-            echo "FIRMWARE_PATH=$(pwd)/bin/targets/mediatek/filogic" >> $GITHUB_ENV
-          else
-            echo "❌ 编译失败"
-            find bin/targets -type d 2>/dev/null || echo "未找到targets目录"
-            exit 1
+
+          echo "📦 编译中..."
+          if ! make -j${COMPILE_THREADS} V=s; then
+          echo "⚠️ 编译失败，尝试单线程调试模式..."
+          make -j1 V=s
+          exit 1
           fi
-      
+
+          echo "✅ 编译结束时间: $(date)"
+
+          if [ -d "bin/targets/mediatek/filogic" ]; then
+          echo "✅ 编译成功！固件目录如下："
+          ls -la bin/targets/mediatek/filogic/
+          echo "COMPILE_SUCCESS=true" >> $GITHUB_ENV
+          echo "FIRMWARE_PATH=$(pwd)/bin/targets/mediatek/filogic" >> $GITHUB_ENV
+          else
+          echo "❌ 编译失败，未找到固件输出目录"
+          find bin/targets -type d 2>/dev/null || echo "未找到 targets 目录"
+          exit 1
+          fi
+          
       - name: 检查固件包含的软件包
         if: env.COMPILE_SUCCESS == 'true'
         run: |
