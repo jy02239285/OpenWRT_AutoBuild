@@ -1,0 +1,106 @@
+name: Build OpenWrt for Xiaomi AX3000T 24.10.3 - strongswan
+on:
+  workflow_dispatch:
+  repository_dispatch:
+  push:
+    paths:
+      - .github/workflows/AX3000T_Strongswan_p5.yml
+      - config/xiaomi-ax3000t-strongswag24.10.3.config
+      - scripts/**
+    branches:
+      - main
+      - master
+
+env:
+  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_BRANCH: v24.10.3
+  CONFIG_FILE: ${{ github.workspace }}/main-repo/config/xiaomi-ax3000t-strongswag24.10.3.config
+  DIY_P1_SH: ${{ github.workspace }}/main-repo/diy-part1.sh
+  DIY_P2_SH: ${{ github.workspace }}/main-repo/diy-part2.sh
+  Part3_sh: ${{ github.workspace }}/main-repo/part3.sh
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: main-repo
+
+      - name: 清理环境
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          df -h
+
+      - name: 安装编译环境
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache clang ecj fastjar file g++ gawk \
+          gettext git java-propose-classpath libelf-dev libncurses5-dev libncursesw5-dev \
+          libssl-dev libxml-parser-perl python3 python3-setuptools python3-pip python3-dev \
+          unzip wget rsync subversion swig time xsltproc zlib1g-dev \
+          software-properties-common lzma flex bison cmake xxd
+
+      - name: 下载OpenWrt源码
+        run: |
+          echo "下载OpenWrt 24.10版本..."
+          git clone $REPO_URL -b $REPO_BRANCH --depth=1 openwrt
+          cd openwrt
+          echo "源码下载完成 - 版本信息:"
+          git describe --tags || true
+
+      # ===== 缓存：dl / host / ccache / cargo =====
+      - name: Cache dl
+        uses: actions/cache@v4
+        with:
+          path: openwrt/dl
+          key: dl-${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ hashFiles('main-repo/config/**/*.config') }}
+          restore-keys: |
+            dl-${{ runner.os }}-${{ env.REPO_BRANCH }}-
+            dl-${{ runner.os }}-
+
+      - name: Cache host toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            openwrt/staging_dir/host
+            openwrt/build_dir/host
+          key: host-${{ runner.os }}-${{ env.REPO_BRANCH }}
+          restore-keys: |
+            host-${{ runner.os }}-${{ env.REPO_BRANCH }}-
+            host-${{ runner.os }}-
+
+      - name: 配置并缓存 ccache
+        run: |
+          mkdir -p $HOME/.ccache
+          echo 'max_size = 2.0G' > $HOME/.ccache/ccache.conf
+          echo 'compression = true' >> $HOME/.ccache/ccache.conf
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ env.REPO_BRANCH }}-
+            ccache-${{ runner.os }}-
+
+      - name: Cache Cargo (Rust)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ github.sha }}
+          restore-key
