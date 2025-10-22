@@ -4,7 +4,7 @@ on:
   repository_dispatch:
   push:
     paths:
-      - .github/workflows/AX3000T_Strongswan_p5.yml
+      - .github/workflows/OP24.10.3-strongswan.yml
       - config/xiaomi-ax3000t-strongswag24.10.3.config
       - scripts/**
     branches:
@@ -103,4 +103,217 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: cargo-${{ runner.os }}-${{ env.REPO_BRANCH }}-${{ github.sha }}
-          restore-key
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ env.REPO_BRANCH }}-
+            cargo-${{ runner.os }}-
+
+      - name: 执行自定义脚本第一部分
+        run: |
+          cd openwrt
+          if [ -f "$DIY_P1_SH" ]; then
+            echo "执行自定义脚本: $DIY_P1_SH"
+            chmod +x "$DIY_P1_SH"
+            "$DIY_P1_SH"
+          else
+            echo "未找到自定义脚本: $DIY_P1_SH"
+            echo "当前目录: $(pwd)"
+            echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
+          fi
+
+      - name: 更新feeds
+        run: |
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          echo "官方feeds安装完成"
+
+      - name: 生成设备配置
+        run: |
+          cd openwrt
+          echo "配置小米AX3000T..."
+          echo "配置文件路径: $CONFIG_FILE"
+          if [ -f "$CONFIG_FILE" ]; then
+            echo "使用外部配置文件: $CONFIG_FILE"
+            cp "$CONFIG_FILE" .config
+            echo "配置文件内容预览:"
+            head -10 .config
+          else
+            echo "错误：未找到配置文件 $CONFIG_FILE，编译终止"
+            echo "查找文件:"
+            find ${{ github.workspace }} -name "*.config" 2>/dev/null || echo "未找到任何配置文件"
+            exit 1
+          fi
+
+      - name: 执行自定义脚本第二部分
+        run: |
+          cd openwrt
+          if [ -f "$DIY_P2_SH" ]; then
+            echo "执行自定义脚本: $DIY_P2_SH"
+            chmod +x "$DIY_P2_SH"
+            "$DIY_P2_SH"
+          else
+            echo "未找到自定义脚本: $DIY_P2_SH"
+            echo "当前目录: $(pwd)"
+            echo "查找文件: $(find ${{ github.workspace }} -name "diy-part2.sh" 2>/dev/null || true)"
+          fi
+
+      - name: 执行自定义脚本第三部分
+        run: |
+          cd openwrt
+          if [ -f "$Part3_sh" ]; then
+            echo "执行自定义脚本: $Part3_sh"
+            chmod +x "$Part3_sh"
+            "$Part3_sh"
+          else
+            echo "未找到自定义脚本: $Part3_sh"
+            echo "当前目录: $(pwd)"
+            echo "查找文件: $(find ${{ github.workspace }} -name "part3.sh" 2>/dev/null || true)"
+          fi
+
+      # ===== 预下载并发 + 容错 =====
+      - name: 下载源码包
+        run: |
+          cd openwrt
+          echo "🛠️ 修复配置文件"
+          make defconfig
+          echo "下载编译依赖包..."
+          make download -j"$(nproc)" IGNORE_ERRORS=1
+          find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
+          echo "依赖包下载完成"
+
+      # ===== Rust bootstrap 预准备并补丁：download-ci-llvm -> download-ci-llvm-if-unchanged =====
+      - name: 预准备并修补 Rust bootstrap（改用 if-unchanged）
+        run: |
+          cd openwrt
+          make package/feeds/packages/rust/host/clean V=s || true
+          make package/feeds/packages/rust/host/prepare V=s
+          CFG=$(grep -Rsl "download-ci-llvm" build_dir/host 2>/dev/null | head -n1 || true)
+          if [ -n "$CFG" ]; then
+            echo "patch: $CFG"
+            sed -i 's/^[[:space:]]*download-ci-llvm[[:space:]]*=[[:space:]]*true/download-ci-llvm-if-unchanged = true/' "$CFG"
+            echo "after patch:"
+            grep -n "download-ci-llvm" "$CFG" || true
+          else
+            echo "WARN: 未找到 rust config.toml，后续将由 unset CI 兜底。"
+          fi
+
+      # ===== 编译（对子进程隐藏 CI；失败再单线程 + V=s） =====
+      - name: 编译 OpenWrt 固件（失败再开 V=s）
+        timeout-minutes: 360
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CC: "ccache gcc"
+          CXX: "ccache g++"
+          FORCE_UNSAFE_CONFIGURE: "1"
+        run: |
+          cd openwrt
+          echo "🚀 开始编译 OpenWrt for 小米 AX3000T"
+          echo "开始时间: $(date)"
+          CORES=$(nproc)
+          echo "使用 ${CORES} 线程编译"
+          free -h
+          echo "📦 编译中..."
+          if ! (unset CI; make -j${CORES}); then
+            echo "⚠️ 并行失败，单线程 + 详细日志重试"
+            (unset CI; make -j1 V=s)
+          fi
+          echo "✅ 编译结束时间: $(date)"
+          if [ -d "bin/targets/mediatek/filogic" ]; then
+            echo "✅ 编译成功！固件目录如下："
+            ls -la bin/targets/mediatek/filogic/
+            echo "COMPILE_SUCCESS=true" >> $GITHUB_ENV
+            echo "FIRMWARE_PATH=$(pwd)/bin/targets/mediatek/filogic" >> $GITHUB_ENV
+          else
+            echo "❌ 编译失败，未找到固件输出目录"
+            find bin/targets -type d 2>/dev/null || echo "未找到 targets 目录"
+            exit 1
+          fi
+
+      - name: 检查固件包含的软件包
+        if: env.COMPILE_SUCCESS == 'true'
+        run: |
+          cd ${{ env.FIRMWARE_PATH }}
+          echo "=== 检查编译出的固件包含的 strongswan 相关文件 ==="
+          if [ -f "packages.txt" ]; then
+            echo "固件包含的 strongswan 相关包:"
+            grep -i strongswan packages.txt || echo "❌ 固件中未包含 strongswan"
+          fi
+          for bin_file in *.bin; do
+            if [ -f "$bin_file" ]; then
+              echo "检查 $bin_file 的大小和时间戳："
+              ls -lh "$bin_file"
+            fi
+          done
+
+      - name: 整理固件文件
+        if: env.COMPILE_SUCCESS == 'true'
+        run: |
+          cd ${{ env.FIRMWARE_PATH }}
+          echo "整理固件文件..."
+          rm -rf packages
+          find . -name "*.md5sum" -delete
+          find . -name "*.sha256sum" -delete
+          find . -name "*.md5" -delete
+          find . -name "*.sha256" -delete
+          echo "最终固件文件："
+          ls -lh *.bin 2>/dev/null || echo "未找到bin文件"
+
+      - name: 获取当前日期（用于 tag）
+        id: build_date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: 获取当前时间（用于正文）
+        id: date
+        run: echo "date=$(date +'%Y年%m月%d日 %H:%M')" >> $GITHUB_OUTPUT
+
+      - name: 创建Release
+        if: env.COMPILE_SUCCESS == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: openwrt-24.10-${{ github.run_number }}-${{ steps.build_date.outputs.date }}
+          name: 小米AX3000T OpenWrt 24.10.3 - Build ${{ github.run_number }}
+          body: |
+            🎉 **小米AX3000T OpenWrt 24.10.3 固件**
+            📦 **固件信息**:
+            - 🔧 基于: OpenWrt 24.10.3 官方版本
+            - 📅 编译时间: ${{ steps.date.outputs.date }}
+            - 🔢 构建编号: #${{ github.run_number }}
+            - 🏠 默认地址: http://10.0.0.1
+            - 👤 默认账户: root (密码为空)
+            ✅ **包含功能**:
+            - 📡 完整路由器功能
+            - 📶 Wi-Fi 6 双频支持
+            - 🌐 LuCI Web 管理界面
+            - 🔒 IPSec VPN 服务器 (strongSwan)
+            - 全功能版 DNSMASQ
+            📋 **使用说明**:
+            1. 确认设备型号为小米 AX3000T v1
+            2. 刷机前务必备份原厂固件
+            3. 刷入固件后访问 http://10.0.0.1
+            4. 用户名: root，密码为空
+            ⚠️ **重要提醒**:
+            - 适用于小米 AX3000T v1 (MT7981 芯片)
+            - 刷机有风险，请确保了解刷机流程
+          files: |
+            ${{ env.FIRMWARE_PATH }}/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 编译总结
+        if: always()
+        run: |
+          echo "========================================="
+          echo "           编译总结报告"
+          echo "========================================="
+          echo "状态: ${{ env.COMPILE_SUCCESS == 'true' && '✅ 成功' || '❌ 失败' }}"
+          echo "时间: $(date +'%Y-%m-%d %H:%M:%S')"
+          echo "版本: OpenWrt 24.10.3"
+          echo "设备: 小米AX3000T v1"
+          echo "构建: #${{ github.run_number }}"
+          if [ "${{ env.COMPILE_SUCCESS }}" == "true" ]; then
+            echo "固件: ${{ env.FIRMWARE_PATH }}"
+            echo "🎉 恭喜！固件编译成功"
+            echo "📥 下载地址: ${{ github.server_url }}/${{ github.repository }}/releases/latest"
+          else
+            echo "😞 编译失败，请检查错误信息"
+          fi
+          echo "========================================="
