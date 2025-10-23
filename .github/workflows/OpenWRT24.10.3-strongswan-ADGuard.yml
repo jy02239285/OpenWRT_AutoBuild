@@ -85,6 +85,13 @@ jobs:
           echo ">> 预览 feeds.conf.default 末尾："
           tail -n 30 feeds.conf.default
           
+      - name: 更新feeds
+        working-directory: openwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          echo "官方及第三方 feeds 安装完成"
+          
       - name: 生成设备配置
         run: |
            cd openwrt
