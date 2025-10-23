@@ -68,19 +68,23 @@ jobs:
             echo "当前目录: $(pwd)"
             echo "查找文件: $(find ${{ github.workspace }} -name "diy-part1.sh" 2>/dev/null || true)"
           fi
-#
-#      - name: 添加缺失的 feed 源
-#        run: | 
-#          cd openwrt
-#          echo "src-git telephony https://git.openwrt.org/feed/telephony.git" >> feeds.conf.default
-#          echo "src-git routing https://git.openwrt.org/feed/routing.git" >> feeds.conf.default
-#             
-      - name: 更新feeds
+
+      - name: 追加第三方 feeds（OpenClash/Passwall2/AdGuardHome/SoftEther）
+        working-directory: openwrt
+        shell: bash
         run: |
-          cd openwrt
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          echo "官方feeds安装完成"
+          set -e
+          echo ">> 追加第三方 feeds 到 feeds.conf.default 尾部"
+          {
+            printf '\n# ===== Appended third-party feeds =====\n'
+            echo 'src-git openclash https://github.com/vernesong/OpenClash.git'
+            echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main'
+            echo 'src-git passwall_luci     https://github.com/xiaorouji/openwrt-passwall2.git;main'
+            echo 'src-git adguardhome_luci  https://github.com/rufengsuixing/luci-app-adguardhome.git'
+            echo 'src-git softether         https://github.com/openwrt-dev/softethervpn-openwrt.git'
+          } >> feeds.conf.default
+          echo ">> 预览 feeds.conf.default 末尾："
+          tail -n 30 feeds.conf.default
           
       - name: 生成设备配置
         run: |
@@ -197,7 +201,7 @@ jobs:
           find . -name "*.md5" -delete
           find . -name "*.sha256" -delete
           echo "最终固件文件："
-          ls -lh *.bin 2>/dev/null || echo "未找到bin文件"
+          ls -lh *.bin 2>/dev0 || echo "未找到bin文件"
           
       - name: 获取当前日期
         id: build_date
