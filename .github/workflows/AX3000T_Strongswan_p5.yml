@@ -181,21 +181,27 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
           echo "依赖包下载完成"
 
-      # ===== Rust bootstrap 预准备并补丁：download-ci-llvm -> download-ci-llvm-if-unchanged =====
-      - name: 预准备并修补 Rust bootstrap（改用 if-unchanged）
+    # ===== Rust bootstrap 预准备并补丁：统一为 download-ci-llvm = "if-unchanged" =====
+      - name: 预准备并修补 Rust bootstrap（统一到 if-unchanged）        
         run: |
           cd openwrt
           make package/feeds/packages/rust/host/clean V=s || true
           make package/feeds/packages/rust/host/prepare V=s
-          CFG=$(grep -Rsl "download-ci-llvm" build_dir/host 2>/dev/null | head -n1 || true)
+          CFG=$(grep -RslE '(^|[[:space:]])download-ci-llvm(-if-unchanged)?[[:space:]]*=' build_dir/host 2>/dev/null | head -n1 || true) 
+
           if [ -n "$CFG" ]; then
-            echo "patch: $CFG"
-            sed -i 's/^[[:space:]]*download-ci-llvm[[:space:]]*=[[:space:]]*true/download-ci-llvm-if-unchanged = true/' "$CFG"
-            echo "after patch:"
-            grep -n "download-ci-llvm" "$CFG" || true
+          echo "patch: $CFG"
+          sed -Ei \
+          -e 's/^[[:space:]]*download-ci-llvm-if-unchanged[[:space:]]*=[[:space:]]*true[[:space:]]*$/download-ci-llvm = "if-unchanged"/' \
+          -e 's/^[[:space:]]*download-ci-llvm[[:space:]]*=[[:space:]]*true[[:space:]]*$/download-ci-llvm = "if-unchanged"/' \
+          "$CFG"
+
+          echo "after patch:"
+          grep -n 'download-ci-llvm' "$CFG" || true
           else
-            echo "WARN: 未找到 rust config.toml，后续将由 unset CI 兜底。"
+          echo "WARN: 未找到 rust config.toml，后续将由 unset CI 兜底。"
           fi
+
 
       # ===== 编译（对子进程隐藏 CI；失败再单线程 + V=s） =====
       - name: 编译 OpenWrt 固件（失败再开 V=s）
