@@ -4,7 +4,7 @@ on:
   repository_dispatch:
   push:
     paths:
-      - .github/workflows/OP24.10.3-strongswan.yml
+      - .github/workflows/AX3000T_Strongswan_p5.yml
       - config/xiaomi-ax3000t-strongswag24.10.3.config
       - scripts/**
     branches:
