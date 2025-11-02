@@ -80,8 +80,6 @@ jobs:
             echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main'
             echo 'src-git passwall_luci     https://github.com/xiaorouji/openwrt-passwall2.git;main'
             echo 'src-git adguardhome_luci  https://github.com/rufengsuixing/luci-app-adguardhome.git'
-            echo 'src-git packages2 https://git.openwrt.org/feed/packages.git^f1470815f41fe199bfdafe9a91ad115bc2e91203'
-            echo 'src-git luci https://github.com/openwrt/luci.git;master'
             echo 'src-git routing https://git.openwrt.org/feed/routing.git^3eb59e9471858c83891979793f1dd29cca156919'
             echo 'src-git telephony https://git.openwrt.org/feed/telephony.git^2a4541d46199ac96fac214d02c908402831c4dc6'
             echo 'src-git helloworld https://github.com/v2support/helloworld.git'
