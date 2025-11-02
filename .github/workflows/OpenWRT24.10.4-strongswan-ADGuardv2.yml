@@ -80,7 +80,6 @@ jobs:
             echo 'src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main'
             echo 'src-git passwall_luci     https://github.com/xiaorouji/openwrt-passwall2.git;main'
             echo 'src-git adguardhome_luci  https://github.com/rufengsuixing/luci-app-adguardhome.git'
-            echo 'src-git telephony https://git.openwrt.org/feed/telephony.git^2a4541d46199ac96fac214d02c908402831c4dc6'
             echo 'src-git helloworld https://github.com/v2support/helloworld.git'
             echo 'src-git small https://github.com/v2support/small-package.git'
           } >> feeds.conf.default
