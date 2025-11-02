@@ -4,7 +4,7 @@ on:
   repository_dispatch:
   push:
     paths:
-      - .github/workflows/OpenWRT24.10.3-strongswan-ADGuard.yml 
+      - .github/workflows/OpenWRT24.10.4-strongswan-ADGuardv2.yml 
       - config/xiaomi-ax3000t-strongswan24.10.4v2.config
       - scripts/**
     branches:
