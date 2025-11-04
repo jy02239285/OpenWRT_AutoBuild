@@ -154,6 +154,12 @@ jobs:
           echo "🛠️ 修复配置文件"
           make defconfig
           
+          echo "🧩 预展开 Rust 源并修正 bootstrap 配置"
+          make package/feeds/packages/rust/host/prepare V=s || true
+          # 适配 1.8x 版本的 rust 源路径通配
+          find build_dir -type f -path "*/rustc-*/config.toml" -print -exec \
+          sed -ri 's/^(download-ci-llvm\s*=\s*)true/\1"if-unchanged"/' {} \;
+          
           echo "🚫 移除 Rust 相关依赖以避免 llvm.download-ci-llvm 错误"
           sed -i '/shadowsocks-rust/d' .config
           sed -i '/_Rust_/d' .config
