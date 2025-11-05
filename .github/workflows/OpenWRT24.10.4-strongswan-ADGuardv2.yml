@@ -144,29 +144,52 @@ jobs:
           make download -j4
           find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
           echo "依赖包下载完成"
-      - name: 编译 OpenWRT 固件                
+      - name: 编译 OpenWRT 固件
         run: |
           cd openwrt
-          echo "🧹 清理旧的 Rust 缓存以防构建触发"
-          make package/feeds/packages/rust/host/clean V=s || true
-          make package/feeds/packages/rust/clean V=s || true
           
           echo "🛠️ 修复配置文件"
           make defconfig
           
-          echo "🧩 预展开 Rust 源并修正 bootstrap 配置"
-          make package/feeds/packages/rust/host/prepare V=s || true
-          # 适配 1.8x 版本的 rust 源路径通配
-          find build_dir -type f -path "*/rustc-*/config.toml" -print -exec \
-          sed -ri 's/^(download-ci-llvm\s*=\s*)true/\1"if-unchanged"/' {} \;
+          echo "🔎 扫描并移除所有 Rust/Cargo 构建的包（防止任何 Rust 依赖残留）"
+          # 找出 feeds 中所有使用 Cargo/Rust 构建的包目录（含 rust/host 依赖或 CARGO 变量）
+          RUST_DIRS=$(grep -RIlE '(^|[^A-Z_])(CARGO|RUST_|rust/host)' feeds/packages 2>/dev/null | sed 's#/Makefile.*##' | sort -u)
+          # 从目录名推测包名，并从 .config 里删掉对应的 CONFIG_PACKAGE_* 行
+          if [ -n "$RUST_DIRS" ]; then
+          for d in $RUST_DIRS; do
+          pkg=$(basename "$d")
+          # 常见子包也一并处理：把所有以该包名开头的 CONFIG_PACKAGE_ 都删掉
+          sed -i "/^CONFIG_PACKAGE_${pkg}=y/d" .config
+          sed -i "/^CONFIG_PACKAGE_${pkg}-/d" .config
+          done
+          fi
           
-          echo "🚫 移除 Rust 相关依赖以避免 llvm.download-ci-llvm 错误"
-          sed -i '/shadowsocks-rust/d' .config
-          sed -i '/_Rust_/d' .config
+          echo "🚫 额外强制移除常见 Rust 组件与选项（多保险）"
           sed -i '/CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust/d' .config
           sed -i '/CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust/d' .config
-          echo "# 已清除 Rust 依赖"
-
+          sed -i '/CONFIG_PACKAGE_shadowsocks-rust/d' .config
+          # 若有人误开了这些核心包，也强制关闭
+          sed -i '/^CONFIG_PACKAGE_ripgrep=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_fd=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_bat=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_delta=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_starship=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_xsv=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_eza=y/d' .config
+          sed -i '/^CONFIG_PACKAGE_exa=y/d' .config
+          # 再跑一次 defconfig 让 Kconfig 收敛
+          make defconfig
+          
+          echo "🧹 清理可能残留的 Rust 构建缓存（你之前问到的三条在这里）"
+          make package/feeds/packages/rust/host/clean V=s || true
+          make package/feeds/packages/rust/clean V=s || true
+          
+          echo "🧪 断言：不应再包含任何 Rust 选项或包"
+          if grep -E '(^CONFIG_.*RUST.*=y|^CONFIG_PACKAGE_.*rust.*=y)' .config; then
+          echo "❌ 仍然检测到 Rust 相关配置，请检查上面的匹配/你的自定义配置"
+          exit 1
+          fi
+          
           echo "🚀 开始编译 OpenWRT for 小米 AX3000T"
           echo "开始时间: $(date)"
           export FORCE_UNSAFE_CONFIGURE=1
@@ -174,7 +197,7 @@ jobs:
           echo "使用 ${COMPILE_THREADS} 线程编译"
           free -h
           echo "📦 编译中..."
-
+          
           if ! make -j${COMPILE_THREADS} V=s; then
           echo "⚠️ 编译失败，尝试单线程调试模式..."
           make -j1 V=s
