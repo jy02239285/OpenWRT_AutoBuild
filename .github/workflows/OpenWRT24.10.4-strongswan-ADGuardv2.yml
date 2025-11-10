@@ -146,12 +146,16 @@ jobs:
           echo "依赖包下载完成"
           
       - name: 编译 OpenWRT 固件
+        env:
+          CI: "" 
         run: |
           set -e
           cd openwrt
 
           # 先做一次收敛，得到完整可解析的 .config
           make defconfig
+          grep -RIl "download-ci-llvm" openwrt || true
+          sed -i 's/download-ci-llvm\s*=\s*true/download-ci-llvm = "if-unchanged"/g' $(grep -RIl "download-ci-llvm" openwrt || echo /dev/null)
 
           echo "🚫 最终强制关闭 Shadowsocks Rust，改用 libev 版本（覆盖 passwall/passwall2/ssr-plus）"
 
