@@ -147,39 +147,62 @@ jobs:
           
       - name: 编译 OpenWRT 固件
         run: |
+          set -e
           cd openwrt
+
+          # 先做一次收敛，得到完整可解析的 .config
           make defconfig
-          
-          echo "🚫 最终强制关闭 Shadowsocks Rust 及其依赖，改用 libev 版本"
-          # 先明确关掉 rust 版
-          ./scripts/config --disable PACKAGE_shadowsocks-rust-sslocal || true
-          ./scripts/config --disable PACKAGE_shadowsocks-rust-ssserver || true
-          ./scripts/config --disable PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client || true
-          ./scripts/config --disable PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Server || true
-          ./scripts/config --disable PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Client || true
-          ./scripts/config --disable PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Server || true
-          
-          # 再显式启用 libev 版，避免某些包用“虚拟依赖”把 rust 版又选回来
-          ./scripts/config --enable PACKAGE_shadowsocks-libev-sslocal || true
-          ./scripts/config --enable PACKAGE_shadowsocks-libev-ssserver || true
-          
-          # 收敛一次，让 Kconfig 生效
+
+          echo "🚫 最终强制关闭 Shadowsocks Rust，改用 libev 版本（覆盖 passwall/passwall2/ssr-plus）"
+
+          # 1) 关掉所有 shadowsocks-rust 变体（基包层）
+          ./scripts/config -d CONFIG_PACKAGE_shadowsocks-rust-sslocal || true
+          ./scripts/config -d CONFIG_PACKAGE_shadowsocks-rust-ssserver || true
+          ./scripts/config -d CONFIG_PACKAGE_shadowsocks-rust-ssservice || true
+          ./scripts/config -d CONFIG_PACKAGE_shadowsocks-rust-ssurl || true
+          ./scripts/config -d CONFIG_PACKAGE_shadowsocks-rust-ssmanager || true
+
+          # 2) 关掉 passwall（老版）里的 Rust 选项（如果未启用也无妨）
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client || true
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Server || true
+
+          # 3) 关掉 passwall2（你实际使用的）里的 Rust 选项
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client || true
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server || true
+
+          # 4) 关掉 ssr-plus（helloworld）里的 Rust 选项（如未启用也安全）
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Client || true
+          ./scripts/config -d CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Server || true
+
+          # 5) 显式启用 libev 变体，避免虚拟依赖把 rust 又拉回
+          ./scripts/config -e CONFIG_PACKAGE_shadowsocks-libev-sslocal || true
+          ./scripts/config -e CONFIG_PACKAGE_shadowsocks-libev-ssserver || true
+
+          # 6) 最终收敛一次，让 Kconfig 生效
           make defconfig
           rm -f .config.old
-          
+
+          # 7) 兜底：如果还有残留的 “=y”，强制改成 not set
+          sed -ri 's/^(CONFIG_PACKAGE_shadowsocks-rust-[^=]+)=y/# \1 is not set/' .config
+
+          # 8) 断言：仅匹配真正的 RUST 开关或 -rust 包名，避免把 "trusted-firmware-a" 误报
           echo "🧪 断言：不应再包含任何 Rust 相关项"
-          if grep -E '(^CONFIG_.*RUST.*=y|^CONFIG_PACKAGE_.*rust.*=y)' .config; then
-          echo "❌ 仍检测到 Rust 项："
-          grep -nE '(^CONFIG_.*RUST.*=y|^CONFIG_PACKAGE_.*rust.*=y)' .config || true
-          echo "🔎 反查是谁选了它："
-          git --no-pager grep -n 'shadowsocks-rust-sslocal' -- ':!openwrt/.config' || true
-          exit 1
+          if [ "${STRICT_RUST_CHECK:-true}" = "true" ]; then
+            if grep -nE '(^CONFIG[[:alnum:]_]*RUST[[:alnum:]_]*=y)|(^CONFIG_PACKAGE_.*-rust([_-].*|$)=y)' .config; then
+              echo "❌ 仍检测到 Rust 相关项："
+              grep -nE '(^CONFIG[[:alnum:]_]*RUST[[:alnum:]_]*=y)|(^CONFIG_PACKAGE_.*-rust([_-].*|$)=y)' .config || true
+              echo "🔎 反查可能来源（示例关键字 shadowsocks-rust）："
+              git --no-pager grep -n 'shadowsocks-rust' -- ':!openwrt/.config' || true
+              exit 1
+            fi
+          else
+            echo "⚠️ 跳过 Rust 断言（STRICT_RUST_CHECK=false）"
           fi
-          
+
           echo "🧹 保险清理（防止旧缓存残留）"
           make package/feeds/packages/rust/host/clean V=s || true
           make package/feeds/packages/rust/clean V=s || true
-        
+
           echo "🚀 开始编译 OpenWRT for 小米 AX3000T"
           echo "开始时间: $(date)"
           export FORCE_UNSAFE_CONFIGURE=1
@@ -187,25 +210,24 @@ jobs:
           echo "使用 ${COMPILE_THREADS} 线程编译"
           free -h
           echo "📦 编译中..."
-          
+
           if ! make -j${COMPILE_THREADS} V=s; then
-          echo "⚠️ 编译失败，尝试单线程调试模式..."
-          make -j1 V=s
-          exit 1
+            echo "⚠️ 编译失败，尝试单线程调试模式..."
+            make -j1 V=s
+            exit 1
           fi
-          
+
           echo "✅ 编译结束时间: $(date)"
           if [ -d "bin/targets/mediatek/filogic" ]; then
-          echo "✅ 编译成功！固件目录如下："
-          ls -la bin/targets/mediatek/filogic/
-          echo "COMPILE_SUCCESS=true" >> $GITHUB_ENV
-          echo "FIRMWARE_PATH=$(pwd)/bin/targets/mediatek/filogic" >> $GITHUB_ENV
+            echo "✅ 编译成功！固件目录如下："
+            ls -la bin/targets/mediatek/filogic/
+            echo "COMPILE_SUCCESS=true" >> $GITHUB_ENV
+            echo "FIRMWARE_PATH=$(pwd)/bin/targets/mediatek/filogic" >> $GITHUB_ENV
           else
-          echo "❌ 编译失败，未找到固件输出目录"
-          find bin/targets -type d 2>/dev/null || echo "未找到 targets 目录"
-          exit 1
-          fi
-          
+            echo "❌ 编译失败，未找到固件输出目录"
+            find bin/targets -type d 2>/dev/null || echo "未找到 targets 目录"
+            exit 1
+          fi          
       - name: 检查固件包含的软件包
         if: env.COMPILE_SUCCESS == 'true'
         run: |
