@@ -145,6 +145,12 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; 2>/dev/null || true
           echo "依赖包下载完成"
           
+      - name: 配置 Rust 引导参数（修复 download-ci-llvm= true 报错）
+        run: |
+          echo "Force llvm.download-ci-llvm=if-unchanged for CI"
+          export RUST_CONFIGURE_ARGS="--set llvm.download-ci-llvm=if-unchanged"
+          echo "RUST_CONFIGURE_ARGS=$RUST_CONFIGURE_ARGS" >> $GITHUB_ENV
+          
       - name: 编译 OpenWRT 固件
         env:
           CI: "" 
@@ -177,6 +183,10 @@ jobs:
           # 4) 关掉 ssr-plus（helloworld）里的 Rust 选项（如未启用也安全）
           ./scripts/config -d CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Client || true
           ./scripts/config -d CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks_Rust_Server || true
+          
+          ./scripts/config --disable CONFIG_LANG_RUST || true
+          ./scripts/config --disable CONFIG_PACKAGE_rust || true
+          ./scripts/config --disable CONFIG_RUST_HOST || true
 
           # 5) 显式启用 libev 变体，避免虚拟依赖把 rust 又拉回
           ./scripts/config -e CONFIG_PACKAGE_shadowsocks-libev-sslocal || true
