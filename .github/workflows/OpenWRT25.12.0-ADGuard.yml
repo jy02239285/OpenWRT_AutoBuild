@@ -5,9 +5,10 @@ on:
   repository_dispatch: null
   push:
     paths:
-      - .github/workflows/**
-      - config/**
-      - scripts/**
+      - .github/workflows/OpenWRT25.12.0-ADGuard.yml
+      - config/xiaomi-ax3000t-25.12.0.config
+      - scripts/diy-part1.sh
+      - scripts/diy-part2.sh
     branches:
       - main
       - master
@@ -15,9 +16,9 @@ on:
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-25.12
-  CONFIG_FILE: config/Xiaomi-ax3000t.config
-  DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
+  CONFIG_FILE: config/xiaomi-ax3000t-25.12.0.config
+  DIY_P1_SH: scripts/diy-part1.sh
+  DIY_P2_SH: scripts/diy-part2.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
