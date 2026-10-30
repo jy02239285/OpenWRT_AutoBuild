@@ -35,16 +35,17 @@ jobs:
 
       - name: Initialization environment
         env:
-          DEBIAN_FRONTEND: noninteractive
-        run: >
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang flex bison g++ gawk \
-          gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev \
-          python3-setuptools rsync swig unzip zlib1g-dev file wget \
-          libelf-dev liblzma-dev
-          sudo timedatectl set-timezone "$TZ"
-          sudo mkdir -p /workdir
-          sudo chown -R $USER:$(id -gn) /workdir
+            DEBIAN_FRONTEND: noninteractive
+        run: |
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends \
+      build-essential clang flex bison g++ gawk \
+      gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev \
+      python3-setuptools rsync swig unzip zlib1g-dev file wget \
+      libelf-dev liblzma-dev
+              sudo timedatectl set-timezone "$TZ"
+              sudo mkdir -p /workdir
+              sudo chown -R "$USER:$(id -gn)" /workdir
 
       - name: Clone OpenWrt source
         run: |
